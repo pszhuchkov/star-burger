@@ -7,6 +7,7 @@ from .models import Product
 
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
 
@@ -70,11 +71,11 @@ class OrderItemSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = OrderItemSerializer(many=True, source='order_items')
+    products = OrderItemSerializer(many=True, source='order_items', write_only=True)
 
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address', 'products']
 
     def validate_products(self, products):
         if not products:
@@ -99,4 +100,4 @@ def register_order(request):
     order_items = [OrderItem(order=order, **fields) for fields in products_fields]
     OrderItem.objects.bulk_create(order_items)
 
-    return Response({'order_id': order.id})
+    return Response(OrderSerializer(order).data)
