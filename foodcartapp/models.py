@@ -4,17 +4,6 @@ from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 
 
-class OrderQuerySet(models.QuerySet):
-    def fetch_with_order_price(self):
-        orders_with_price = self.annotate(
-            order_price=Sum(
-                F('order_items__product__price') * (F('order_items__quantity')),
-                output_field=DecimalField()
-            )
-        )
-        return orders_with_price
-
-
 class Restaurant(models.Model):
     name = models.CharField('название', max_length=50)
     address = models.CharField('адрес', max_length=100, blank=True)
@@ -81,6 +70,14 @@ class RestaurantMenuItem(models.Model):
         ]
 
 
+class OrderQuerySet(models.QuerySet):
+    def fetch_with_order_price(self):
+        orders_with_price = self.annotate(
+            order_price=Sum('order_items__price')
+        )
+        return orders_with_price
+
+
 class Order(models.Model):
     firstname = models.CharField(verbose_name='имя', max_length=25)
     lastname = models.CharField(verbose_name='фамилия', max_length=25)
@@ -101,6 +98,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey('Order', verbose_name='заказ', related_name='order_items', on_delete=models.CASCADE)
     product = models.ForeignKey('Product', verbose_name='товар', related_name='product_orders', null=True, on_delete=models.SET_NULL)
     quantity = models.IntegerField(verbose_name='количество', validators=[MinValueValidator(1)])
+    price = models.DecimalField('цена', max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
     def __str__(self):
         return f'{self.product} {self.order.firstname} {self.order.lastname} {self.order.address}'

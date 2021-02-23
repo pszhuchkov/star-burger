@@ -110,7 +110,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
-    fields = ['product', 'quantity']
+    fields = ['product', 'quantity', 'price']
     extra = 0
 
 
