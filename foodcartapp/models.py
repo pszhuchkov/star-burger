@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Sum, F, IntegerField
+from django.db.models import Sum, F, DecimalField
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -9,7 +9,7 @@ class OrderQuerySet(models.QuerySet):
         orders_with_cost = self.annotate(
             order_cost=Sum(
                 F('order_items__product__price') * (F('order_items__quantity')),
-                output_field=IntegerField()
+                output_field=DecimalField()
             )
         )
         return orders_with_cost
