@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.http import JsonResponse
 from django.templatetags.static import static
 
@@ -7,7 +8,6 @@ from .models import Product
 
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.serializers import ModelSerializer
 
@@ -88,22 +88,23 @@ def register_order(request):
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    order = Order.objects.create(
-        firstname=serializer.validated_data['firstname'],
-        lastname=serializer.validated_data['lastname'],
-        phonenumber=serializer.validated_data['phonenumber'],
-        address=serializer.validated_data['address']
-    )
+    with transaction.atomic():
+        order = Order.objects.create(
+            firstname=serializer.validated_data['firstname'],
+            lastname=serializer.validated_data['lastname'],
+            phonenumber=serializer.validated_data['phonenumber'],
+            address=serializer.validated_data['address']
+        )
 
-    products_fields = serializer.validated_data['order_items']
+        products_fields = serializer.validated_data['order_items']
 
-    order_items = [
-        OrderItem(
-            order=order,
-            price=fields['product'].price * fields['quantity'],
-            **fields
-        ) for fields in products_fields
-    ]
-    OrderItem.objects.bulk_create(order_items)
+        order_items = [
+            OrderItem(
+                order=order,
+                price=fields['product'].price * fields['quantity'],
+                **fields
+            ) for fields in products_fields
+        ]
+        OrderItem.objects.bulk_create(order_items)
 
     return Response(OrderSerializer(order).data)
