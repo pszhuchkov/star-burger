@@ -5,14 +5,14 @@ from phonenumber_field.modelfields import PhoneNumberField
 
 
 class OrderQuerySet(models.QuerySet):
-    def fetch_with_order_cost(self):
-        orders_with_cost = self.annotate(
-            order_cost=Sum(
+    def fetch_with_order_price(self):
+        orders_with_price = self.annotate(
+            order_price=Sum(
                 F('order_items__product__price') * (F('order_items__quantity')),
                 output_field=DecimalField()
             )
         )
-        return orders_with_cost
+        return orders_with_price
 
 
 class Restaurant(models.Model):
