@@ -86,6 +86,7 @@ class Order(models.Model):
     phonenumber = PhoneNumberField(verbose_name='телефон')
     address = models.CharField(verbose_name='адрес', max_length=200)
     status = models.IntegerField(verbose_name='статус', choices=STATUS_CHOICES, default=0)
+    comment = models.TextField(verbose_name='комментарий', blank=True)
 
     objects = OrderQuerySet.as_manager()
 
