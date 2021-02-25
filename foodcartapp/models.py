@@ -81,12 +81,14 @@ class OrderQuerySet(models.QuerySet):
 
 class Order(models.Model):
     STATUS_CHOICES = [(0, 'Необработанный'), (1, 'Обработанный')]
+    PAYMENT_CHOICES = [(0, 'Сразу'), (1, 'Электронно'), (2, 'Наличностью')]
 
     firstname = models.CharField('имя', max_length=25)
     lastname = models.CharField('фамилия', max_length=25)
     phonenumber = PhoneNumberField('телефон')
     address = models.CharField('адрес', max_length=200)
     status = models.IntegerField('статус', choices=STATUS_CHOICES, default=0)
+    payment = models.IntegerField('оплата', choices=PAYMENT_CHOICES)
     comment = models.TextField('комментарий', blank=True)
     registered_at = models.DateTimeField('получен', default=timezone.now)
     called_at = models.DateTimeField('согласован', null=True, blank=True)

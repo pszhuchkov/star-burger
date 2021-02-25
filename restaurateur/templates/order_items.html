@@ -15,7 +15,8 @@
     <tr>
       <th class="text-center">ID заказа</th>
       <th class="text-center">Статус заказа</th>
-      <th class="text-center">Стоимость заказа</th>
+      <th class="text-center">Статус заказа</th>
+      <th class="text-center">Вид оплаты</th>
       <th class="text-center">Клиент</th>
       <th class="text-center">Телефон</th>
       <th class="text-center">Адрес доставки</th>
@@ -27,6 +28,7 @@
       <tr>
         <td>{{ order.id }}</td>
         <td>{{ order.get_status_display }}</td>
+        <td>{{ order.get_payment_display }}</td>
         <td>{{ order.order_price }} руб.</td>
         <td>{{ order.firstname }} {{ order.lastname }}</td>
         <td>{{ order.phonenumber }}</td>
