@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -7,8 +8,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
-
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem, OrderItem
 
 
 class Login(forms.Form):
@@ -95,9 +95,51 @@ def view_restaurants(request):
     })
 
 
+def serialize_order(order, restaurants_with_products):
+    return {
+        'id': order.id,
+        'status': order.get_status_display(),
+        'payment': order.get_payment_display(),
+        'restaurants': get_available_restaurants(restaurants_with_products,
+                                                 get_product_ids(order)),
+        'price': order.order_price,
+        'firstname': order.firstname,
+        'lastname': order.lastname,
+        'phonenumber': order.phonenumber,
+        'address': order.address,
+        'comment': order.comment
+    }
+
+
+def get_available_restaurants(restaurants_with_products, product_ids):
+    available_restaurants = []
+    for restaurant_name, available_products_ids in restaurants_with_products.items():
+        if product_ids.issubset(available_products_ids):
+            available_restaurants.append(restaurant_name)
+    return available_restaurants
+
+
+def get_product_ids(order):
+    order_items = order.order_items
+    product_ids = set(order_items.values_list('product_id', flat=True))
+    return product_ids
+
+
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.fetch_with_order_price()
+
+    restaurant_menu_items = RestaurantMenuItem.objects.\
+        filter(availability=True).\
+        values_list('restaurant__name', 'product')
+
+    restaurants_with_products = defaultdict(set)
+    for restaurant_menu_item in restaurant_menu_items:
+        restaurants_with_products[restaurant_menu_item[0]].add(restaurant_menu_item[1])
+
+    orders = Order.objects.fetch_with_order_price().order_by('id')
+
+    serialized_orders = [serialize_order(order, restaurants_with_products) for order in orders]
+
     return render(request, template_name='order_items.html', context={
-        'orders': orders
+        'orders': serialized_orders
     })

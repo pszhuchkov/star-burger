@@ -75,7 +75,7 @@ class OrderQuerySet(models.QuerySet):
     def fetch_with_order_price(self):
         orders_with_price = self.annotate(
             order_price=Sum('order_items__price')
-        ).order_by('registered_at')
+        )
         return orders_with_price
 
 
