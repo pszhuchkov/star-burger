@@ -1,4 +1,7 @@
+import requests
+
 from collections import defaultdict
+from environs import Env
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -8,7 +11,9 @@ from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
-from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem, OrderItem
+from geopy import distance
+
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 
 
 class Login(forms.Form):
@@ -95,13 +100,27 @@ def view_restaurants(request):
     })
 
 
-def serialize_order(order, restaurants_with_products):
+def serialize_order(order, restaurants_ids_with_products_ids):
+    available_restaurants_ids = get_available_restaurants(
+        restaurants_ids_with_products_ids, get_product_ids_for_order(order)
+    )
+
+    available_restaurants = Restaurant.objects.filter(
+        id__in=available_restaurants_ids
+    )
+
+    serialized_available_restaurants = [serialize_restaurant(restaurant, order.address)
+                                        for restaurant in available_restaurants]
+    available_restaurants_sorted_by_distance = sorted(
+        serialized_available_restaurants,
+        key=lambda restaurant: restaurant['distance_to_order']
+    )
+
     return {
         'id': order.id,
         'status': order.get_status_display(),
         'payment': order.get_payment_display(),
-        'restaurants': get_available_restaurants(restaurants_with_products,
-                                                 get_product_ids(order)),
+        'restaurants': available_restaurants_sorted_by_distance,
         'price': order.order_price,
         'firstname': order.firstname,
         'lastname': order.lastname,
@@ -111,17 +130,34 @@ def serialize_order(order, restaurants_with_products):
     }
 
 
-def get_available_restaurants(restaurants_with_products, product_ids):
-    available_restaurants = []
-    for restaurant_name, available_products_ids in restaurants_with_products.items():
+def serialize_restaurant(restaurant, order_address):
+    env = Env()
+    env.read_env()
+    apikey = env("YANDEX_API_KEY")
+
+    order_coordinates = fetch_coordinates(apikey, order_address)
+    restaurant_coordinates = fetch_coordinates(apikey, restaurant.address)
+    return {
+        'id': restaurant.id,
+        'name': restaurant.name,
+        'address': restaurant.address,
+        'distance_to_order': round(distance.distance(order_coordinates,
+                                               restaurant_coordinates).km, 3)
+
+    }
+
+
+def get_available_restaurants(restaurants_ids_with_products_ids, product_ids):
+    available_restaurants_ids = []
+    for restaurant_id, available_products_ids in restaurants_ids_with_products_ids.items():
         if product_ids.issubset(available_products_ids):
-            available_restaurants.append(restaurant_name)
-    return available_restaurants
+            available_restaurants_ids.append(restaurant_id)
+    return available_restaurants_ids
 
 
-def get_product_ids(order):
+def get_product_ids_for_order(order):
     order_items = order.order_items
-    product_ids = set(order_items.values_list('product_id', flat=True))
+    product_ids = set(order_items.values_list('product', flat=True))
     return product_ids
 
 
@@ -141,15 +177,15 @@ def view_orders(request):
 
     restaurant_menu_items = RestaurantMenuItem.objects.\
         filter(availability=True).\
-        values_list('restaurant__name', 'product')
+        values_list('restaurant', 'product')
 
-    restaurants_with_products = defaultdict(set)
+    restaurants_ids_with_products_ids = defaultdict(set)
     for restaurant_menu_item in restaurant_menu_items:
-        restaurants_with_products[restaurant_menu_item[0]].add(restaurant_menu_item[1])
+        restaurants_ids_with_products_ids[restaurant_menu_item[0]].add(restaurant_menu_item[1])
 
     orders = Order.objects.fetch_with_order_price().order_by('id')
 
-    serialized_orders = [serialize_order(order, restaurants_with_products) for order in orders]
+    serialized_orders = [serialize_order(order, restaurants_ids_with_products_ids) for order in orders]
 
     return render(request, template_name='order_items.html', context={
         'orders': serialized_orders
