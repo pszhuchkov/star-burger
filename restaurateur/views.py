@@ -173,11 +173,8 @@ def view_orders(request):
         values_list('restaurant', 'restaurant__name', 'restaurant__address', 'product')
 
     restaurants_with_products_ids = {}
-    for restaurant_menu_item in restaurant_menu_items:
-        restaurant_id = restaurant_menu_item[0]
-        restaurant_name = restaurant_menu_item[1]
-        restaurant_address = restaurant_menu_item[2]
-        product_id = restaurant_menu_item[3]
+    for menu_item in restaurant_menu_items:
+        restaurant_id, restaurant_name, restaurant_address, product_id = menu_item
         if restaurant_id in restaurants_with_products_ids:
             restaurants_with_products_ids[restaurant_id]['products'].add(product_id)
         else:
@@ -189,7 +186,8 @@ def view_orders(request):
 
     orders = Order.objects.fetch_with_order_price().order_by('id')
 
-    serialized_orders = [serialize_order(order, restaurants_with_products_ids) for order in orders]
+    serialized_orders = [serialize_order(order, restaurants_with_products_ids)
+                         for order in orders]
 
     return render(request, template_name='order_items.html', context={
         'orders': serialized_orders
