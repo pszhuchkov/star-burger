@@ -1,6 +1,6 @@
 import requests
+import os
 
-from environs import Env
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -11,8 +11,9 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
 from geopy import distance
+from requests.exceptions import RequestException
 
-from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem, Place
 
 
 class Login(forms.Form):
@@ -104,11 +105,12 @@ def serialize_order(order, restaurants_with_products_ids):
         restaurants_with_products_ids, get_product_ids_for_order(order)
     )
 
-    restructured_available_restaurants = [restructure_restaurant(restaurant, order.address)
+    formalized_available_restaurants = [formalize_restaurant(restaurant, order.address)
                                         for restaurant in available_restaurants.values()]
     available_restaurants_sorted_by_distance = sorted(
-        restructured_available_restaurants,
-        key=lambda restaurant: restaurant['distance_to_order']
+        formalized_available_restaurants,
+        key=lambda restaurant: (restaurant['distance_to_order'] is None,
+                                restaurant['distance_to_order'])
     )
 
     return {
@@ -125,19 +127,35 @@ def serialize_order(order, restaurants_with_products_ids):
     }
 
 
-def restructure_restaurant(restaurant, order_address):
-    env = Env()
-    env.read_env()
-    apikey = env("YANDEX_API_KEY")
+def formalize_restaurant(restaurant, order_address):
+    try:
+        distance_to_order = get_distance_between_two_addresses(
+            restaurant['address'], order_address
+        )
+    except RequestException:
+        distance_to_order = None
 
-    order_coordinates = fetch_coordinates(apikey, order_address)
-    restaurant_coordinates = fetch_coordinates(apikey, restaurant['address'])
     return {
         'name': restaurant['name'],
         'address': restaurant['address'],
-        'distance_to_order': round(distance.distance(order_coordinates,
-                                                     restaurant_coordinates).km, 3)
+        'distance_to_order': distance_to_order
     }
+
+
+def get_distance_between_two_addresses(address1, address2):
+    apikey = os.environ['YANDEX_API_KEY']
+
+    coords = []
+    for address in [address1, address2]:
+        try:
+            place = Place.objects.get(address=address)
+        except Place.DoesNotExist:
+            lon, lat = fetch_coordinates(apikey, address)
+            place = Place.objects.create(address=address, lon=lon, lat=lat)
+            place.save()
+        coords.append((place.lon, place.lat))
+    distance_between_two_addresses = distance.distance(coords[0], coords[1]).km
+    return round(distance_between_two_addresses, 3)
 
 
 def get_available_restaurants(restaurants_with_products_ids, product_ids):
