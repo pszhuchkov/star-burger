@@ -15,8 +15,8 @@
     <tr>
       <th class="text-center">ID заказа</th>
       <th class="text-center">Статус заказа</th>
-      <th class="text-center">Статус заказа</th>
       <th class="text-center">Вид оплаты</th>
+      <th class="text-center">Сумма заказа</th>
       <th class="text-center">Клиент</th>
       <th class="text-center">Телефон</th>
       <th class="text-center">Адрес доставки</th>
@@ -28,7 +28,11 @@
       <tr>
         <td>{{ order.id }}</td>
         <td>{{ order.status }}</td>
-        <td>{{ order.payment }}</td>
+        {% if order.payment %}
+          <td>{{ order.payment }}</td>
+        {% else %}
+          <td>-</td>
+        {% endif %}
         <td>{{ order.price }} руб.</td>
         <td>{{ order.firstname }} {{ order.lastname }}</td>
         <td>{{ order.phonenumber }}</td>
@@ -39,7 +43,7 @@
             <details>
               <summary>Развернуть</summary>
                 {% for restaurant in order.restaurants %}
-                  <li>{{ restaurant.name }} - {{ restaurant.distance_to_order }} км.</li>
+                  <li>{{ restaurant.name }} - {% if restaurant.distance_to_order %}{{ restaurant.distance_to_order }} км.{% else %}не определено{% endif %}</li>
                 {% endfor %}
             </details>
           {% else %}
