@@ -88,7 +88,7 @@ class Order(models.Model):
     phonenumber = PhoneNumberField('телефон')
     address = models.CharField('адрес', max_length=200)
     status = models.IntegerField('статус', choices=STATUS_CHOICES, default=0)
-    payment = models.IntegerField('оплата', choices=PAYMENT_CHOICES)
+    payment = models.IntegerField('оплата', choices=PAYMENT_CHOICES, null=True, blank=True)
     restaurant = models.ForeignKey('Restaurant', null=True, blank=True, on_delete=models.SET_NULL)
     comment = models.TextField('комментарий', blank=True)
     registered_at = models.DateTimeField('получен', default=timezone.now)
