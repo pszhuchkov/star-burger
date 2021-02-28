@@ -117,3 +117,16 @@ class OrderItem(models.Model):
     class Meta:
         verbose_name = 'элемент заказа'
         verbose_name_plural = 'элементы заказа'
+
+
+class Place(models.Model):
+    address = models.CharField('адрес', max_length=200)
+    lon = models.FloatField('долгота', null=True, blank=True)
+    lat = models.FloatField('широта', null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.address} ({self.lon}, {self.lat})'
+
+    class Meta:
+        verbose_name = 'место'
+        verbose_name_plural = 'места'

@@ -7,6 +7,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import Order
 from .models import OrderItem
+from .models import Place
 from .models import Product
 from .models import ProductCategory
 from .models import Restaurant
@@ -107,6 +108,10 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductCategory)
 class ProductAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Place)
+class PlaceAdmin(admin.ModelAdmin):
     pass
 
 
